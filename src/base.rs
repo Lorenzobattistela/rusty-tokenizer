@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use std::fs::File;
-use std::io::{Error, Write};
+use std::io::{BufRead, BufReader, Error, ErrorKind, Read, Write};
 use std::{collections::HashMap, str::from_utf8};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -108,6 +108,7 @@ trait Tokenizer {
     }
 
     fn save(
+        &self,
         file_prefix: String,
         pattern: String,
         special_tokens: HashMap<i32, char>,
@@ -130,5 +131,50 @@ trait Tokenizer {
         }
 
         Ok(())
+    }
+
+    fn load(
+        &self,
+        model_file: String,
+    ) -> Result<(String, HashMap<String, i32>, HashMap<(i32, i32), i32>), Error> {
+        assert!(model_file.ends_with(".model"));
+
+        let mut merges = HashMap::new();
+        let mut special_tokens = HashMap::new();
+        let mut idx = 256;
+
+        let file = File::open(model_file)?;
+        let reader = BufReader::new(file);
+
+        let mut lines = reader.lines();
+
+        // Read the version
+        let version = lines.next().unwrap()?.trim().to_string();
+        assert_eq!(version, "minbpe v1");
+
+        // Read the pattern
+        let pattern = lines.next().unwrap()?.trim().to_string();
+
+        // Read the special tokens
+        let num_special = lines.next().unwrap()?.trim().parse::<i32>().unwrap();
+        for _ in 0..num_special {
+            let line = lines.next().unwrap()?;
+            let mut parts = line.trim().split_whitespace();
+            let special = parts.next().unwrap().to_string();
+            let special_idx = parts.next().unwrap().parse::<char>().unwrap();
+            special_tokens.insert(special, special_idx as i32);
+        }
+
+        // Read the merges
+        for line in lines {
+            let line = line?;
+            let mut parts = line.trim().split_whitespace();
+            let idx1 = parts.next().unwrap().parse::<i32>().unwrap();
+            let idx2 = parts.next().unwrap().parse::<i32>().unwrap();
+            merges.insert((idx1, idx2), idx);
+            idx += 1;
+        }
+
+        Ok((pattern, special_tokens, merges))
     }
 }
