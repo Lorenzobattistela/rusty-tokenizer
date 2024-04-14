@@ -107,7 +107,13 @@ trait Tokenizer {
         vocab
     }
 
-    fn save(&self, file_prefix: String, pattern: String, special_tokens: HashMap<i32, char>) {
+    fn save(
+        &self,
+        file_prefix: String,
+        pattern: String,
+        special_tokens: HashMap<i32, char>,
+        merges: &HashMap<(i32, i32), i32>,
+    ) {
         let model_file = file_prefix + ".model";
 
         match File::create(&model_file) {
@@ -126,7 +132,19 @@ trait Tokenizer {
                     println!("Error writing to file.");
                 }
 
-                for (special, idx) in special_tokens.iter() {}
+                for (special, idx) in special_tokens.iter() {
+                    let item_str = format!("{} {}\n", special, idx);
+                    if let Err(_) = writeln!(file, "{}", item_str) {
+                        println!("Error writing to file.");
+                    }
+                }
+
+                for ((idx1, idx2), _) in merges.iter() {
+                    let merges_str = format!("{} {}\n", idx1, idx2);
+                    if let Err(_) = writeln!(file, "{}", merges_str) {
+                        println!("Error writing merges idx to file.");
+                    }
+                }
             }
             Err(e) => {
                 println!("Error creating file: {}", e);
