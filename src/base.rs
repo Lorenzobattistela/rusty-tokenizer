@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::fs::File;
+use std::io::prelude::*;
 use std::{collections::HashMap, str::from_utf8};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -103,5 +105,32 @@ trait Tokenizer {
         }
 
         vocab
+    }
+
+    fn save(&self, file_prefix: String, pattern: String, special_tokens: HashMap<i32, char>) {
+        let model_file = file_prefix + ".model";
+
+        match File::create(&model_file) {
+            Ok(mut file) => {
+                if let Err(_) = writeln!(file, "minbpe v1\n") {
+                    println!("Error writing on file.");
+                }
+
+                let pattern_with_newline = format!("{}\n", &pattern);
+                if let Err(_) = writeln!(file, "{}", pattern_with_newline) {
+                    println!("Error writing to file.");
+                }
+
+                let special_tokens_str = format!("{}\n", &special_tokens.len());
+                if let Err(_) = writeln!(file, "{}", special_tokens_str) {
+                    println!("Error writing to file.");
+                }
+
+                for (special, idx) in special_tokens.iter() {}
+            }
+            Err(e) => {
+                println!("Error creating file: {}", e);
+            }
+        }
     }
 }
