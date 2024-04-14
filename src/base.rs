@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::{Error, Write};
 use std::{collections::HashMap, str::from_utf8};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -108,47 +108,27 @@ trait Tokenizer {
     }
 
     fn save(
-        &self,
         file_prefix: String,
         pattern: String,
         special_tokens: HashMap<i32, char>,
         merges: &HashMap<(i32, i32), i32>,
-    ) {
+    ) -> Result<(), Error> {
         let model_file = file_prefix + ".model";
 
-        match File::create(&model_file) {
-            Ok(mut file) => {
-                if let Err(_) = writeln!(file, "minbpe v1\n") {
-                    println!("Error writing on file.");
-                }
+        let mut file = File::create(&model_file)?;
 
-                let pattern_with_newline = format!("{}\n", &pattern);
-                if let Err(_) = writeln!(file, "{}", pattern_with_newline) {
-                    println!("Error writing to file.");
-                }
+        writeln!(file, "minbpe v1\n")?;
+        writeln!(file, "{}\n", &pattern)?;
 
-                let special_tokens_str = format!("{}\n", &special_tokens.len());
-                if let Err(_) = writeln!(file, "{}", special_tokens_str) {
-                    println!("Error writing to file.");
-                }
-
-                for (special, idx) in special_tokens.iter() {
-                    let item_str = format!("{} {}\n", special, idx);
-                    if let Err(_) = writeln!(file, "{}", item_str) {
-                        println!("Error writing to file.");
-                    }
-                }
-
-                for ((idx1, idx2), _) in merges.iter() {
-                    let merges_str = format!("{} {}\n", idx1, idx2);
-                    if let Err(_) = writeln!(file, "{}", merges_str) {
-                        println!("Error writing merges idx to file.");
-                    }
-                }
-            }
-            Err(e) => {
-                println!("Error creating file: {}", e);
-            }
+        writeln!(file, "{}\n", special_tokens.len())?;
+        for (special, idx) in special_tokens.iter() {
+            writeln!(file, "{} {}", special, idx)?;
         }
+
+        for ((idx1, idx2), _) in merges.iter() {
+            writeln!(file, "{} {}", idx1, idx2)?;
+        }
+
+        Ok(())
     }
 }
