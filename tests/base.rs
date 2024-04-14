@@ -2,6 +2,60 @@
 mod tests {
     use rusty_tokenizer::base;
     use std::collections::HashMap;
+    use std::fs::{self, File};
+    use std::io::{Error, Write};
+
+    // Define the save function
+    fn save(
+        file_prefix: String,
+        pattern: String,
+        special_tokens: HashMap<i32, char>,
+        merges: &HashMap<(i32, i32), i32>,
+    ) -> Result<(), Error> {
+        let model_file = file_prefix + ".model";
+
+        let mut file = File::create(&model_file)?;
+
+        writeln!(file, "minbpe v1\n")?;
+        writeln!(file, "{}\n", &pattern)?;
+
+        writeln!(file, "{}\n", special_tokens.len())?;
+        for (special, idx) in special_tokens.iter() {
+            writeln!(file, "{} {}", special, idx)?;
+        }
+
+        for ((idx1, idx2), _) in merges.iter() {
+            writeln!(file, "{} {}", idx1, idx2)?;
+        }
+
+        Ok(())
+    }
+
+    // Test function for save
+    #[test]
+    fn test_save() {
+        let file_prefix = String::from("test");
+        let pattern = String::from("test pattern");
+        let mut special_tokens = HashMap::new();
+        special_tokens.insert(1, 'a');
+        special_tokens.insert(2, 'b');
+        let mut merges = HashMap::new();
+        merges.insert((1, 2), 3);
+
+        // Call the save function and assert the result
+        let result = save(
+            file_prefix.clone(),
+            pattern.clone(),
+            special_tokens.clone(),
+            &merges,
+        );
+        assert!(result.is_ok());
+        let model_file = file_prefix + ".model";
+        assert!(std::path::Path::new(&model_file).exists());
+
+        // Delete the file
+        fs::remove_file(&model_file).expect("Failed to delete file");
+    }
 
     #[test]
     fn test_get_stats_empty() {
