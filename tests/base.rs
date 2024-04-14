@@ -1,11 +1,51 @@
 #[cfg(test)]
 mod tests {
     use rusty_tokenizer::base;
+    use std::char;
     use std::collections::HashMap;
     use std::fs::{self, File};
-    use std::io::{Error, Write};
+    use std::io::{BufRead, BufReader, Error, ErrorKind, Read, Write};
 
-    // Define the save function
+    fn load(
+        model_file: String,
+    ) -> Result<(String, HashMap<String, i32>, HashMap<(i32, i32), i32>), Error> {
+        assert!(model_file.ends_with(".model"));
+
+        let mut merges = HashMap::new();
+        let mut special_tokens = HashMap::new();
+        let mut idx = 256;
+
+        let file = File::open(model_file)?;
+        let reader = BufReader::new(file);
+
+        let mut lines = reader.lines();
+
+        let version = lines.next().unwrap()?.trim().to_string();
+        assert_eq!(version, "minbpe v1");
+
+        let pattern = lines.next().unwrap()?.trim().to_string();
+
+        let num_special = lines.next().unwrap()?.trim().parse::<i32>().unwrap();
+        for _ in 0..num_special {
+            let line = lines.next().unwrap()?;
+            let mut parts = line.trim().split_whitespace();
+            let special = parts.next().unwrap().to_string();
+            let special_idx = parts.next().unwrap().parse::<char>().unwrap();
+            special_tokens.insert(special, special_idx as i32);
+        }
+
+        for line in lines {
+            let line = line?;
+            let mut parts = line.trim().split_whitespace();
+            let idx1 = parts.next().unwrap().parse::<i32>().unwrap();
+            let idx2 = parts.next().unwrap().parse::<i32>().unwrap();
+            merges.insert((idx1, idx2), idx);
+            idx += 1;
+        }
+
+        Ok((pattern, special_tokens, merges))
+    }
+
     fn save(
         file_prefix: String,
         pattern: String,
@@ -16,10 +56,10 @@ mod tests {
 
         let mut file = File::create(&model_file)?;
 
-        writeln!(file, "minbpe v1\n")?;
-        writeln!(file, "{}\n", &pattern)?;
+        writeln!(file, "minbpe v1")?;
+        writeln!(file, "{}", &pattern)?;
 
-        writeln!(file, "{}\n", special_tokens.len())?;
+        writeln!(file, "{}", special_tokens.len())?;
         for (special, idx) in special_tokens.iter() {
             writeln!(file, "{} {}", special, idx)?;
         }
@@ -33,7 +73,7 @@ mod tests {
 
     // Test function for save
     #[test]
-    fn test_save() {
+    fn test_save_and_load() {
         let file_prefix = String::from("test");
         let pattern = String::from("test pattern");
         let mut special_tokens = HashMap::new();
@@ -53,7 +93,19 @@ mod tests {
         let model_file = file_prefix + ".model";
         assert!(std::path::Path::new(&model_file).exists());
 
-        // Delete the file
+        // testing load
+        let model_file = String::from("test.model");
+        match load(model_file.clone()) {
+            Ok((pattern, special_tokens, merges)) => {
+                println!("Pattern: {}", pattern);
+                println!("special tokens: {:?}", special_tokens);
+                println!("merges: {:?}", merges);
+            }
+            Err(e) => {
+                eprintln!("Error loading model: {}", e);
+            }
+        }
+
         fs::remove_file(&model_file).expect("Failed to delete file");
     }
 
