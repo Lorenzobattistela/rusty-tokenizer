@@ -70,15 +70,7 @@ fn bytes_integers(input: u8) -> Vec<u8> {
 }
 
 // base tokenizer
-
-struct Tokenizerr {
-    merges: HashMap<(i32, i32), i32>,
-    pattern: String,
-    special_tokens: HashMap<String, i32>,
-    vocab: HashMap<i32, Vec<u8>>,
-}
-
-trait Tokenizer {
+pub trait Tokenizer {
     fn train(&self, text: String, vocab_size: i32, verbose: bool) {
         unimplemented!();
     }
