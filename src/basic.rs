@@ -25,8 +25,27 @@ impl Tokenizer for BasicTokenizer {
             vocab.insert(idx, vec![idx as u8]);
         }
 
-        for _ in 0..num_merges {
+        for i in 0..num_merges {
             let stats = get_stats(&ids, None);
+            let pair = stats.iter().max_by_key(|(_, &v)| v).unwrap().0;
+
+            let idx = 256 + i;
+            ids = merge(&ids, pair, idx);
+
+            merges[pair] = idx;
+            vocab[idx] = vocab[pair.0] + vocab[pair.1];
+
+            if verbose {
+                println!(
+                    "Merge {:?}/{:?}: {:?} -> {:?} ({:?} had {:?} occurrences)",
+                    i + 1,
+                    num_merges,
+                    pair,
+                    idx,
+                    vocab[idx],
+                    stats[pair]
+                );
+            }
         }
     }
 }
