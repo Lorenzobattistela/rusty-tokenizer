@@ -6,6 +6,7 @@ struct BasicTokenizer {
     merges: HashMap<(i32, i32), i32>,
     pattern: String,
     special_tokens: HashMap<String, i32>,
+    vocab: HashMap<i32, Vec<u8>>,
 }
 
 impl Tokenizer for BasicTokenizer {
@@ -47,5 +48,11 @@ impl Tokenizer for BasicTokenizer {
                 );
             }
         }
+        self.merges = merges;
+        self.vocab = vocab;
     }
+
+    fn decode(&self, ids: Vec<i32>) -> String {}
+
+    fn encode(&self, text: String) -> Vec<i32> {}
 }
