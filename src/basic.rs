@@ -75,11 +75,34 @@ impl Tokenizer for BasicTokenizer {
         self.vocab = vocab;
     }
 
-    fn decode(&self, ids: Vec<i32>) -> String {
-        todo!()
+    fn decode(&self, ids: &[i32]) -> String {
+        // given ids (list of ints) return string
+        let mut text_bytes = Vec::new();
+        for &idx in ids {
+            if let Some(bytes) = self.vocab.get(&idx) {
+                text_bytes.extend_from_slice(bytes)
+            }
+        }
+
+        let text = String::from_utf8_lossy(&text_bytes).into_owned();
+        text
     }
 
     fn encode(&self, text: String) -> Vec<i32> {
+        let text_bytes = text.as_bytes();
+        let ids: Vec<i32> = text_bytes.iter().map(|&b| b as i32).collect();
+
+        while ids.len() >= 2 {
+            let stats = get_stats(&ids, None);
+            let pair = stats
+                .iter()
+                .min_by_key(|&(p, _)| self.merges.get(&p).unwrap_or(&std::i32::MAX))
+                .unwrap();
+
+            if !self.merges.contains_key(pair) {
+                break;
+            }
+        }
         todo!()
     }
 }
