@@ -71,15 +71,15 @@ fn bytes_integers(input: u8) -> Vec<u8> {
 
 // base tokenizer
 pub trait Tokenizer {
-    fn train(&self, text: String, vocab_size: i32, verbose: bool) {
+    fn train(&mut self, text: String, vocab_size: i32, verbose: bool) {
         unimplemented!();
     }
 
-    fn encode(&self, text: String) {
+    fn encode(&self, text: String) -> Vec<i32> {
         unimplemented!();
     }
 
-    fn decode(&self, ids: Vec<i32>) {
+    fn decode(&self, ids: Vec<i32>) -> String {
         unimplemented!();
     }
 
