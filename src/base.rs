@@ -79,7 +79,7 @@ pub trait Tokenizer {
         unimplemented!();
     }
 
-    fn decode(&self, ids: Vec<i32>) -> String {
+    fn decode(&self, ids: &[i32]) -> String {
         unimplemented!();
     }
 
